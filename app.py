@@ -1,12 +1,17 @@
+"""
+A Streamlit app to interact with Donna
+"""
+
 import streamlit as st
-from openai import OpenAI
-import random
-import time
+from openai import OpenAI, NotFoundError
+import assistant
 
 
-# Streamed response emulator
-# Pre: latest message should be in chat history
 def response_generator():
+    """
+    Streamed response emulator
+    Pre: latest message should be in chat history
+    """
     client = st.session_state["openai_client"]
     streamed_response = client.chat.completions.create(
         model=st.session_state["openai_model"],
@@ -20,19 +25,35 @@ def response_generator():
 
 
 def setup_openai():
-    # Set OpenAI API key from Streamlit secrets
-    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+    """
+    Set up OpenAI client and model.
+    Puts info into st.session_state.{openai_client,openai_model}
+    """
 
-    # Set a default model
-    if "openai_model" not in st.session_state:
-        st.session_state["openai_model"] = "gpt-3.5-turbo"
+    if "openai_client" not in st.session_state:
+        # Set OpenAI API key from Streamlit secrets
+        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+        asst = assistant.retrieve_assistant(client)
+        thread = assistant.thread_create(client)
+
         st.session_state["openai_client"] = client
+        st.session_state["openai_assistant"] = asst
+        st.session_state["openai_thread"] = thread
+
+    assert "openai_assistant" in st.session_state
 
 
 def app_main():
-    setup_openai()
+    """
+    Main Streamlit app
+    """
+    try:
+        setup_openai()
+    except NotFoundError:
+        st.error("Assistant not found! Something's wrong!")
+        st.stop()
 
-    st.title("GPT Bot")
+    st.title("Donna")
 
     # Initialize chat history
     if "messages" not in st.session_state:
@@ -43,13 +64,21 @@ def app_main():
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    if prompt := st.chat_input("What is up?"):
+    if prompt := st.chat_input(
+        "How can I help?" if not st.session_state.messages else ""
+    ):
         # Display user message in chat message container
         with st.chat_message("user"):
             st.markdown(prompt)
 
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
+        assistant.thread_append(
+            st.session_state["openai_client"],
+            st.session_state["openai_thread"],
+            "user",
+            prompt,
+        )
 
         # Display assistant response in chat message container
         with st.chat_message("assistant"):
@@ -57,6 +86,12 @@ def app_main():
 
         # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})
+        assistant.thread_append(
+            st.session_state["openai_client"],
+            st.session_state["openai_thread"],
+            "assistant",
+            response,
+        )
 
 
 app_main()
