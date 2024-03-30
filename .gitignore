@@ -40,3 +40,6 @@ venv/
 
 # Streamlit
 .streamlit
+
+# Env
+.env
