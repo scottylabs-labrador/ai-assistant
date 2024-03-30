@@ -1,3 +1,11 @@
+"""
+A script to update the OpenAI assistant, as well as a library to interact with it
+"""
+
+import os
+from openai import OpenAI, NotFoundError
+from dotenv import load_dotenv
+
 # Constants
 ASSISTANT_ID = "asst_ErKdy8h6lM8ia6JqZhD8WXSu"
 ASSISTANT_NAME = "Calendar Assistant"
@@ -5,10 +13,13 @@ ASSISTANT_INSTRUCTIONS = ""
 ASSISTANT_MODEL = "gpt-4"
 
 
-# Updates the info of the agent to what we want it to be
-def update_assistant(client):
+def update_assistant(openai_client):
+    """
+    Updates the info of the agent to what we want it to be
+    """
+
     try:
-        asst = client.beta.assistants.retrieve(ASSISTANT_ID)
+        asst = openai_client.beta.assistants.retrieve(ASSISTANT_ID)
     except NotFoundError:
         print("Assistant not found! Something's wrong!")
         exit(1)
@@ -17,13 +28,13 @@ def update_assistant(client):
 
     if asst.instructions != ASSISTANT_INSTRUCTIONS:
         print("Updating instructions...")
-        asst = client.beta.assistants.update(
+        asst = openai_client.beta.assistants.update(
             assistant_id=ASSISTANT_ID, instructions=ASSISTANT_INSTRUCTIONS
         )
 
     if asst.model != ASSISTANT_MODEL:
         print("Updating model...")
-        asst = client.beta.assistants.update(
+        asst = openai_client.beta.assistants.update(
             assistant_id=ASSISTANT_ID, model=ASSISTANT_MODEL
         )
 
@@ -31,10 +42,6 @@ def update_assistant(client):
 
 
 if __name__ == "__main__":
-    from openai import OpenAI, NotFoundError
-    import os
-    from dotenv import load_dotenv
-
     load_dotenv()
 
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")

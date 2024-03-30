@@ -1,12 +1,16 @@
+"""
+A Streamlit app to interact with Donna
+"""
+
 import streamlit as st
 from openai import OpenAI
-import random
-import time
 
 
-# Streamed response emulator
-# Pre: latest message should be in chat history
 def response_generator():
+    """
+    Streamed response emulator
+    Pre: latest message should be in chat history
+    """
     client = st.session_state["openai_client"]
     streamed_response = client.chat.completions.create(
         model=st.session_state["openai_model"],
@@ -20,6 +24,10 @@ def response_generator():
 
 
 def setup_openai():
+    """
+    Set up OpenAI client and model
+    """
+
     # Set OpenAI API key from Streamlit secrets
     client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
@@ -30,9 +38,12 @@ def setup_openai():
 
 
 def app_main():
+    """
+    Main Streamlit app
+    """
     setup_openai()
 
-    st.title("GPT Bot")
+    st.title("Donna")
 
     # Initialize chat history
     if "messages" not in st.session_state:
