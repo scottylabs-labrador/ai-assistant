@@ -1,11 +1,13 @@
 from datetime import datetime, timedelta
 import os.path
 
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import pytz
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
@@ -175,34 +177,60 @@ def get_availability(date):
         print(f"An error occurred: {error}")
 
 
-def calculate_free_periods(start_of_day, end_of_day, busy_periods):
-    """Calculate free periods given the day's range and busy periods."""
+def convert_to_timezone(from_time, from_zone, to_zone):
+    """
+    Convert datetime from one timezone to another.
+
+    :param from_time: The datetime to convert.
+    :param from_zone: The timezone of the input datetime.
+    :param to_zone: The timezone to convert the datetime to.
+    :return: The converted datetime as a string in the format "Month day, Year Hour:Minute:Second AM/PM".
+    """
+    from_zone_tz = pytz.timezone(from_zone)
+    to_zone_tz = pytz.timezone(to_zone)
+
+    # Localize the datetime to the original timezone
+    localized_datetime = from_zone_tz.localize(from_time)
+
+    # Convert it to the new timezone
+    target_time = localized_datetime.astimezone(to_zone_tz)
+
+    # Format the datetime to the specified format
+    return target_time.strftime("%B %d, %Y %I:%M:%S %p")
+
+
+def calculate_free_periods(
+    start_of_day, end_of_day, busy_periods, user_timezone="America/New_York"
+):
+    """Calculate free periods given the day's range and busy periods, and convert them to user's timezone."""
     free_periods = []
+
+    # Convert start_of_day and end_of_day to the user's timezone and make them offset-aware
+    user_tz = pytz.timezone(user_timezone)
+    start_of_day = user_tz.localize(start_of_day)
+    end_of_day = user_tz.localize(end_of_day)
     current_start = start_of_day
 
     for busy in busy_periods:
-        busy_start = datetime.fromisoformat(busy["start"].rstrip("Z"))
-        busy_end = datetime.fromisoformat(busy["end"].rstrip("Z"))
+        busy_start_utc = datetime.fromisoformat(busy["start"].rstrip("Z")).replace(
+            tzinfo=pytz.utc
+        )
+        busy_end_utc = datetime.fromisoformat(busy["end"].rstrip("Z")).replace(
+            tzinfo=pytz.utc
+        )
 
-        # If the current start is before the busy period starts, we have a free period
-        if current_start < busy_start:
-            formatted_date = current_start.strftime("%B %d, %Y")
-            formatted_time = current_start.strftime("%I:%M:%S %p")
-            currStart = " ".join([formatted_date, formatted_time])
-            formatted_dateB = busy_start.strftime("%B %d, %Y")
-            formatted_timeB = busy_start.strftime("%I:%M:%S %p")
-            busyStart = " ".join([formatted_dateB, formatted_timeB])
+        busy_start_user_tz = busy_start_utc.astimezone(user_tz)
+        busy_end_user_tz = busy_end_utc.astimezone(user_tz)
+
+        if current_start < busy_start_user_tz:
+            currStart = current_start.strftime("%B %d, %Y %I:%M:%S %p")
+            busyStart = busy_start_user_tz.strftime("%B %d, %Y %I:%M:%S %p")
             free_periods.append((currStart, busyStart))
-        current_start = max(current_start, busy_end)
+        current_start = max(current_start, busy_end_user_tz)
 
-    # Check for free time at the end of the day
     if current_start < end_of_day:
-        formatted_date = current_start.strftime("%B %d, %Y")
-        formatted_time = current_start.strftime("%I:%M:%S %p")
-        currStart = " ".join([formatted_date, formatted_time])
-        formatted_dateB = end_of_day.strftime("%B %d, %Y")
-        formatted_timeB = end_of_day.strftime("%I:%M:%S %p")
-        end = " ".join([formatted_dateB, formatted_timeB])
+        currStart = current_start.strftime("%B %d, %Y %I:%M:%S %p")
+        end = end_of_day.strftime("%B %d, %Y %I:%M:%S %p")
         free_periods.append((currStart, end))
 
     return free_periods
