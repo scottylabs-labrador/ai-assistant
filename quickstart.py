@@ -1,3 +1,5 @@
+"""The datetime module supplies classes for manipulating dates and times."""
+
 from datetime import datetime, timedelta
 import os.path
 
@@ -26,7 +28,7 @@ def get_calendar_service():
             flow = InstalledAppFlow.from_client_secrets_file("donnaClient.json", SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open("token.json", "w") as token:
+        with open("token.json", "w", encoding="locale") as token:
             token.write(creds.to_json())
 
     service = build("calendar", "v3", credentials=creds)
@@ -51,7 +53,7 @@ def main():
             flow = InstalledAppFlow.from_client_secrets_file("donnaClient.json", SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open("token.json", "w") as token:
+        with open("token.json", "w", encoding="locale") as token:
             token.write(creds.to_json())
 
     try:
@@ -87,19 +89,6 @@ def main():
 
     except HttpError as error:
         print(f"An error occurred: {error}")
-
-
-# def get_event(event_id):
-#     """Retrieve an event by its ID from the user's primary calendar."""
-#     try:
-#         service = get_calendar_service()
-#         event = service.events().get(calendarId="primary", eventId=event_id).execute()
-#         print("Event found: %s" % (event.get("summary")))
-#         return event
-#     except HttpError as error:
-#         print(f"An error occurred: {error}")
-#         page_token = None
-#         return None
 
 
 def set_event(event_details):
@@ -141,7 +130,10 @@ def get_events():
     # Prints the start and name of today's events
     for event in events:
         start = event["start"].get("dateTime", event["start"].get("date"))
-        print(start, event["summary"])
+        try:
+            print(start, event["summary"])
+        except KeyError:
+            print(start, "Untitled event")
 
 
 def get_availability(date):
@@ -170,9 +162,12 @@ def get_availability(date):
         if not free_periods:
             print("Looks like the day is fully booked!")
         else:
-            print("Free times:")
-            for period in free_periods:
-                print(f"{period[0]} to {period[1]}")
+            if len(free_periods) == 1:
+                print("You are free the entire day!")
+            else:
+                print("Free times:")
+                for period in free_periods:
+                    print(f"{period[0]} to {period[1]}")
     except HttpError as error:
         print(f"An error occurred: {error}")
 
@@ -237,17 +232,17 @@ def calculate_free_periods(
 
 
 if __name__ == "__main__":
-    # get_events()
-    # set_event(
-    #     {
-    #         "summary": "Test event",
-    #         "location": "Test location",
-    #         "description": "Test description",
-    #         "start": {
-    #             "dateTime": "2024-03-16T09:00:00",
-    #             "timeZone": "Europe/Bucharest",
-    #         },
-    #         "end": {"dateTime": "2024-03-16T17:00:00", "timeZone": "Europe/Bucharest"},
-    #     }
-    # )
-    get_availability("2024-3-16")
+    get_events()
+    set_event(
+        {
+            "summary": "Test event",
+            "location": "Test location",
+            "description": "Test description",
+            "start": {
+                "dateTime": "2024-03-16T09:00:00",
+                "timeZone": "Europe/Bucharest",
+            },
+            "end": {"dateTime": "2024-03-16T17:00:00", "timeZone": "Europe/Bucharest"},
+        }
+    )
+    get_availability("2024-3-20")
