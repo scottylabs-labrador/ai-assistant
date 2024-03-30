@@ -1,0 +1,88 @@
+{
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "set_event",
+        "description": "Create or update a calendar event with the provided details, including adding attendees.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": "string",
+              "description": "A brief description of the event."
+            },
+            "location": {
+              "type": "string",
+              "description": "The location of the event. Should be in a 'City, State/Country' format for potential weather integration."
+            },
+            "description": {
+              "type": "string",
+              "description": "A detailed description of the event."
+            },
+            "start": {
+              "type": "object",
+              "properties": {
+                "dateTime": {
+                  "type": "string",
+                  "description": "The start date and time of the event in ISO format (YYYY-MM-DDTHH:MM:SS)."
+                },
+                "timeZone": {
+                  "type": "string",
+                  "description": "The time zone of the start time."
+                }
+              },
+              "required": ["dateTime", "timeZone"]
+            },
+            "end": {
+              "type": "object",
+              "properties": {
+                "dateTime": {
+                  "type": "string",
+                  "description": "The end date and time of the event in ISO format (YYYY-MM-DDTHH:MM:SS)."
+                },
+                "timeZone": {
+                  "type": "string",
+                  "description": "The time zone of the end time."
+                }
+              },
+              "required": ["dateTime", "timeZone"]
+            },
+            "attendees": {
+              "type": "array",
+              "description": "A list of attendees to be added to the event. This field is optional.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "The email address of an attendee. Required for each attendee."
+                  }
+                },
+                "required": ["email"]
+              }
+            }
+          },
+          "required": ["summary", "start", "end"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_availability",
+        "description": "Get the availability of the user given a date.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "The date for which to get availability in ISO format (YYYY-MM-DD)."
+            }
+          },
+          "required": ["date"]
+        }
+      }
+    }
+  ]
+}
